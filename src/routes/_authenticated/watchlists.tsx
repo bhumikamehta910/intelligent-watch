@@ -178,7 +178,7 @@ function WatchlistsPage() {
                           Rename
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          variant="destructive"
+                          className="text-negative focus:text-negative"
                           onSelect={() => remove.mutate(list.id)}
                         >
                           <Trash2 className="size-3.5" /> Delete
