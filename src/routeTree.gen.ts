@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedWatchlistsRouteImport } from './routes/_authenticated/watchlists'
 import { Route as AuthenticatedStockTickerRouteImport } from './routes/_authenticated/stock.$ticker'
 
@@ -35,6 +36,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedWatchlistsRoute = AuthenticatedWatchlistsRouteImport.update({
   id: '/watchlists',
   path: '/watchlists',
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/watchlists': typeof AuthenticatedWatchlistsRoute
   '/stock/$ticker': typeof AuthenticatedStockTickerRoute
 }
@@ -58,6 +65,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/watchlists': typeof AuthenticatedWatchlistsRoute
   '/stock/$ticker': typeof AuthenticatedStockTickerRoute
 }
@@ -67,20 +75,34 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/watchlists': typeof AuthenticatedWatchlistsRoute
   '/_authenticated/stock/$ticker': typeof AuthenticatedStockTickerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/watchlists' | '/stock/$ticker'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/settings'
+    | '/watchlists'
+    | '/stock/$ticker'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/watchlists' | '/stock/$ticker'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/settings'
+    | '/watchlists'
+    | '/stock/$ticker'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/dashboard'
+    | '/_authenticated/settings'
     | '/_authenticated/watchlists'
     | '/_authenticated/stock/$ticker'
   fileRoutesById: FileRoutesById
@@ -121,6 +143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/watchlists': {
       id: '/_authenticated/watchlists'
       path: '/watchlists'
@@ -140,12 +169,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedWatchlistsRoute: typeof AuthenticatedWatchlistsRoute
   AuthenticatedStockTickerRoute: typeof AuthenticatedStockTickerRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedWatchlistsRoute: AuthenticatedWatchlistsRoute,
   AuthenticatedStockTickerRoute: AuthenticatedStockTickerRoute,
 }
