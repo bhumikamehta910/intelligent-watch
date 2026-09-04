@@ -8,7 +8,7 @@ import {
 } from "@/lib/demo-data";
 import { relativeTime, signedPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { ScoreRing } from "./demo.index";
+import { ScoreRing } from "@/components/score-ring";
 
 export const Route = createFileRoute("/demo/stock/$ticker")({
   head: ({ params }) => ({
