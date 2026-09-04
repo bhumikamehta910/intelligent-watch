@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, Bell, Layers, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, Bell, Layers, PlayCircle, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -8,13 +8,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "PulseIQ is an intelligent market watchlist that shows what changed since your last visit, why it changed, and what deserves attention now.",
+          "PulseIQ is an intelligent market watchlist that shows what changed since your last visit, why it changed, and what deserves attention now. Explore the live demo — no account needed.",
       },
       { property: "og:title", content: "PulseIQ — Know what changed. Understand what matters." },
       {
         property: "og:description",
         content:
-          "An intelligent market watchlist built for signal, not tickers. See what changed, why, and what matters now.",
+          "Traditional watchlists show prices. PulseIQ shows what deserves your attention. Explore the demo without signing up.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -26,18 +26,18 @@ export const Route = createFileRoute("/")({
 const FEATURES = [
   {
     icon: Bell,
-    title: "What changed",
-    body: "A single feed of everything that moved on your watchlist since you were last here — nothing repeated, nothing missed.",
+    title: "Since you were away",
+    body: "A single feed of everything that moved on your watchlist since your last visit — nothing repeated, nothing missed.",
   },
   {
     icon: Sparkles,
-    title: "Why it changed",
-    body: "Each event carries a plain-language explanation of the mechanism behind the move, not just a headline.",
+    title: "Attention scores",
+    body: "Every company gets a score from price, volume, peer behaviour and volatility, so the list ranks itself.",
   },
   {
     icon: Layers,
-    title: "What matters now",
-    body: "Events are scored for impact and ranked, so the three things worth your attention sit at the top.",
+    title: "Explanations & replay",
+    body: "Plain-language reasons behind each score, plus a timeline you can scrub to replay how the story built up.",
   },
 ];
 
@@ -51,39 +51,52 @@ function Landing() {
           </span>
           <span className="text-[15px] font-semibold tracking-tight">PulseIQ</span>
         </div>
-        <Link
-          to="/auth"
-          className="ml-auto rounded-md border border-border px-3 py-1.5 text-[13px] transition-colors hover:bg-accent"
-        >
-          Sign in
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            to="/demo"
+            className="rounded-md px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Demo
+          </Link>
+          <Link
+            to="/auth"
+            className="rounded-md border border-border px-3 py-1.5 text-[13px] transition-colors hover:bg-accent"
+          >
+            Sign in
+          </Link>
+        </div>
       </header>
 
       <section className="mx-auto max-w-3xl px-5 pb-16 pt-20 text-center">
         <p className="text-[12px] uppercase tracking-[0.18em] text-primary">Intelligent watchlist</p>
         <h1 className="mt-4 text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-          Know what changed.
-          <br />
-          Understand what matters.
+          PulseIQ
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
-          PulseIQ isn't a price ticker. It tracks the companies you follow and tells you what moved
-          since your last visit, the reason behind it, and how much it should matter to you.
+        <p className="mt-4 text-balance text-xl font-medium tracking-tight text-foreground/90 sm:text-2xl">
+          Know what changed. Understand what matters.
         </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
+        <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
+          Traditional watchlists show prices.
+          <br />
+          PulseIQ shows what deserves your attention.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
-            to="/auth"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2.5 text-[14px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            to="/demo"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-[14px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Start tracking <ArrowRight className="size-4" />
+            <PlayCircle className="size-4" /> Explore Demo
           </Link>
           <Link
             to="/auth"
-            className="rounded-lg border border-border px-4 py-2.5 text-[14px] transition-colors hover:bg-accent"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-5 py-2.5 text-[14px] transition-colors hover:bg-accent"
           >
-            Create an account
+            Sign In <ArrowRight className="size-4" />
           </Link>
         </div>
+        <p className="mt-4 text-[12.5px] text-muted-foreground">
+          The demo opens instantly — no account, no email verification.
+        </p>
       </section>
 
       <section className="mx-auto grid max-w-5xl gap-3 px-5 pb-24 sm:grid-cols-3">
