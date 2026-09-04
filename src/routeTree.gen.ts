@@ -12,10 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedWatchlistsRouteImport } from './routes/_authenticated/watchlists'
+import { Route as DemoIndexRouteImport } from './routes/demo.index'
 import { Route as AuthenticatedStockTickerRouteImport } from './routes/_authenticated/stock.$ticker'
+import { Route as DemoStockTickerRouteImport } from './routes/demo.stock.$ticker'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +32,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -46,20 +54,33 @@ const AuthenticatedWatchlistsRoute = AuthenticatedWatchlistsRouteImport.update({
   path: '/watchlists',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const DemoIndexRoute = DemoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DemoRoute,
+} as any)
 const AuthenticatedStockTickerRoute =
   AuthenticatedStockTickerRouteImport.update({
     id: '/stock/$ticker',
     path: '/stock/$ticker',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const DemoStockTickerRoute = DemoStockTickerRouteImport.update({
+  id: '/stock/$ticker',
+  path: '/stock/$ticker',
+  getParentRoute: () => DemoRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/watchlists': typeof AuthenticatedWatchlistsRoute
+  '/demo/': typeof DemoIndexRoute
   '/stock/$ticker': typeof AuthenticatedStockTickerRoute
+  '/demo/stock/$ticker': typeof DemoStockTickerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,27 +88,35 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/watchlists': typeof AuthenticatedWatchlistsRoute
+  '/demo': typeof DemoIndexRoute
   '/stock/$ticker': typeof AuthenticatedStockTickerRoute
+  '/demo/stock/$ticker': typeof DemoStockTickerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/demo': typeof DemoRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/watchlists': typeof AuthenticatedWatchlistsRoute
+  '/demo/': typeof DemoIndexRoute
   '/_authenticated/stock/$ticker': typeof AuthenticatedStockTickerRoute
+  '/demo/stock/$ticker': typeof DemoStockTickerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/demo'
     | '/dashboard'
     | '/settings'
     | '/watchlists'
+    | '/demo/'
     | '/stock/$ticker'
+    | '/demo/stock/$ticker'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -95,22 +124,28 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/watchlists'
+    | '/demo'
     | '/stock/$ticker'
+    | '/demo/stock/$ticker'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/demo'
     | '/_authenticated/dashboard'
     | '/_authenticated/settings'
     | '/_authenticated/watchlists'
+    | '/demo/'
     | '/_authenticated/stock/$ticker'
+    | '/demo/stock/$ticker'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DemoRoute: typeof DemoRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -136,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -157,12 +199,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWatchlistsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/demo/': {
+      id: '/demo/'
+      path: '/'
+      fullPath: '/demo/'
+      preLoaderRoute: typeof DemoIndexRouteImport
+      parentRoute: typeof DemoRoute
+    }
     '/_authenticated/stock/$ticker': {
       id: '/_authenticated/stock/$ticker'
       path: '/stock/$ticker'
       fullPath: '/stock/$ticker'
       preLoaderRoute: typeof AuthenticatedStockTickerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/demo/stock/$ticker': {
+      id: '/demo/stock/$ticker'
+      path: '/stock/$ticker'
+      fullPath: '/demo/stock/$ticker'
+      preLoaderRoute: typeof DemoStockTickerRouteImport
+      parentRoute: typeof DemoRoute
     }
   }
 }
@@ -184,10 +240,23 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface DemoRouteChildren {
+  DemoIndexRoute: typeof DemoIndexRoute
+  DemoStockTickerRoute: typeof DemoStockTickerRoute
+}
+
+const DemoRouteChildren: DemoRouteChildren = {
+  DemoIndexRoute: DemoIndexRoute,
+  DemoStockTickerRoute: DemoStockTickerRoute,
+}
+
+const DemoRouteWithChildren = DemoRoute._addFileChildren(DemoRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DemoRoute: DemoRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
