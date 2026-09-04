@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedWatchlistsRouteImport } from './routes/_authenticated/watchlists'
+import { Route as AuthenticatedStockTickerRouteImport } from './routes/_authenticated/stock.$ticker'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +40,26 @@ const AuthenticatedWatchlistsRoute = AuthenticatedWatchlistsRouteImport.update({
   path: '/watchlists',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStockTickerRoute =
+  AuthenticatedStockTickerRouteImport.update({
+    id: '/stock/$ticker',
+    path: '/stock/$ticker',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/watchlists': typeof AuthenticatedWatchlistsRoute
+  '/stock/$ticker': typeof AuthenticatedStockTickerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/watchlists': typeof AuthenticatedWatchlistsRoute
+  '/stock/$ticker': typeof AuthenticatedStockTickerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +68,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/watchlists': typeof AuthenticatedWatchlistsRoute
+  '/_authenticated/stock/$ticker': typeof AuthenticatedStockTickerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/watchlists'
+  fullPaths: '/' | '/auth' | '/dashboard' | '/watchlists' | '/stock/$ticker'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/watchlists'
+  to: '/' | '/auth' | '/dashboard' | '/watchlists' | '/stock/$ticker'
   id:
     | '__root__'
     | '/'
@@ -72,6 +82,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/watchlists'
+    | '/_authenticated/stock/$ticker'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,17 +128,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWatchlistsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/stock/$ticker': {
+      id: '/_authenticated/stock/$ticker'
+      path: '/stock/$ticker'
+      fullPath: '/stock/$ticker'
+      preLoaderRoute: typeof AuthenticatedStockTickerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedWatchlistsRoute: typeof AuthenticatedWatchlistsRoute
+  AuthenticatedStockTickerRoute: typeof AuthenticatedStockTickerRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedWatchlistsRoute: AuthenticatedWatchlistsRoute,
+  AuthenticatedStockTickerRoute: AuthenticatedStockTickerRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
