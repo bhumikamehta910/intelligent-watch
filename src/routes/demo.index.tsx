@@ -1,28 +1,37 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Gauge, History, Sparkles } from "lucide-react";
 import {
   DEMO_ACTIVITY_DESC,
-  DEMO_ATTENTION,
   DEMO_SINCE_AWAY,
-  DEMO_SNAPSHOTS,
   DEMO_WATCHLIST,
-  demoCompany,
   type DemoActivity,
 } from "@/lib/demo-data";
+import { intelligenceQuery, findResult, type AttentionResult } from "@/lib/intelligence";
 import { relativeTime, signedPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { ScoreRing } from "@/components/score-ring";
+import { ScoreBreakdown } from "@/components/score-breakdown";
 
 export const Route = createFileRoute("/demo/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(intelligenceQuery()),
+  errorComponent: () => (
+    <div className="panel p-10 text-center text-[13.5px] text-muted-foreground">
+      The demo intelligence data could not be loaded. Please refresh.
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="panel p-10 text-center text-[13.5px]">Demo workspace not found.</div>
+  ),
   head: () => ({
     meta: [
       { title: "Demo workspace — PulseIQ" },
       {
         name: "description",
         content:
-          "A pre-populated PulseIQ workspace: attention scores, explanations and a timeline replay for an Indian large-cap watchlist. No account needed.",
+          "A pre-populated PulseIQ workspace: calculated attention scores, score breakdowns and a timeline replay for an Indian large-cap watchlist. No account needed.",
       },
       { property: "og:title", content: "Demo workspace — PulseIQ" },
       {
@@ -37,25 +46,27 @@ export const Route = createFileRoute("/demo/")({
 });
 
 function DemoDashboard() {
+  const { data: results } = useSuspenseQuery(intelligenceQuery());
+
   return (
     <>
       <div className="mb-7">
         <h1 className="text-2xl font-semibold tracking-tight">{DEMO_WATCHLIST.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Last visit {relativeTime(DEMO_WATCHLIST.lastSeenAt)} · {DEMO_SNAPSHOTS.length} companies ·
-          sample data so you can evaluate PulseIQ without an account
+          Last visit {relativeTime(DEMO_WATCHLIST.lastSeenAt)} · {results.length} companies · scores
+          calculated live from stored snapshots
         </p>
       </div>
 
-      <SinceYouWereAway />
+      <SinceYouWereAway results={results} />
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div>
-          <AttentionScores />
-          <TimelineReplay />
+          <AttentionScores results={results} />
+          <TimelineReplay results={results} />
         </div>
         <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
-          <Snapshots />
+          <Snapshots results={results} />
           <div className="panel p-4">
             <h2 className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
               Like what you see?
@@ -79,8 +90,13 @@ function DemoDashboard() {
 
 /* ---------------- 1. Since you were away ---------------- */
 
-function SinceYouWereAway() {
+function SinceYouWereAway({ results }: { results: AttentionResult[] }) {
   const moved = DEMO_SINCE_AWAY.length;
+  const top = results[0];
+  const weakest = [...results].sort(
+    (a, b) => a.signals.priceChangePercent - b.signals.priceChangePercent,
+  )[0];
+
   return (
     <section className="panel p-5">
       <div className="flex items-center gap-2">
@@ -94,98 +110,41 @@ function SinceYouWereAway() {
       </div>
       <p className="mt-3 text-[15px] leading-relaxed">
         In the {relativeTime(DEMO_WATCHLIST.lastSeenAt).replace(" ago", "")} you were away,{" "}
-        <strong className="font-medium">{moved} things happened</strong> on this watchlist.{" "}
-        <strong className="font-medium text-positive">TCS</strong> is the one that matters — an 8%
-        move on 3.2x volume, ahead of every peer. Reliance is the one to watch on the downside.
+        <strong className="font-medium">{moved} things happened</strong> on this watchlist.
+        {top ? (
+          <>
+            {" "}
+            <strong className="font-medium text-positive">{top.ticker}</strong> is the one that
+            matters — attention score {top.score} ({top.classification}). {top.explanation[0]}
+          </>
+        ) : null}
+        {weakest && weakest.ticker !== top?.ticker ? (
+          <> {weakest.ticker} is the one to watch on the downside.</>
+        ) : null}
       </p>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {DEMO_SINCE_AWAY.slice(0, 3).map((e) => (
-          <Link
-            key={e.id}
-            to="/demo/stock/$ticker"
-            params={{ ticker: e.ticker }}
-            className="rounded-lg border border-border/70 bg-surface-raised/40 p-3 transition-colors hover:bg-accent/50"
-          >
-            <div className="flex items-center gap-2">
-              <span className="num text-[12px] font-medium">{e.ticker}</span>
-              <span
-                className={cn(
-                  "num ml-auto text-[12.5px]",
-                  (e.priceChangePct ?? 0) >= 0 ? "text-positive" : "text-negative",
-                )}
-              >
-                {signedPct(e.priceChangePct)}
-              </span>
-            </div>
-            <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground">{e.headline}</p>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ---------------- 2 + 3. Attention scores & explanations ---------------- */
-
-function AttentionScores() {
-  return (
-    <section>
-      <div className="mb-3 flex items-center gap-2">
-        <Gauge className="size-4 text-primary" />
-        <h2 className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
-          Attention scores
-        </h2>
-      </div>
-      <div className="space-y-3">
-        {DEMO_ATTENTION.map((a) => {
-          const snap = demoCompany(a.ticker);
+        {DEMO_SINCE_AWAY.slice(0, 3).map((e) => {
+          const r = findResult(results, e.ticker);
           return (
-            <article key={a.ticker} className="panel group p-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <ScoreRing score={a.score} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="num text-[13px] font-medium">{a.ticker}</span>
-                    <span className="truncate text-[13px] text-muted-foreground">
-                      {snap?.companyName}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-[14px] leading-snug">{a.verdict}</p>
-                </div>
-                <div className="ml-auto text-right">
-                  <div
-                    className={cn(
-                      "num text-[15px]",
-                      (snap?.changePct ?? 0) >= 0 ? "text-positive" : "text-negative",
-                    )}
-                  >
-                    {signedPct(snap?.changePct ?? null)}
-                  </div>
-                  <div className="num text-[12px] text-muted-foreground">
-                    ₹{snap?.price.toLocaleString("en-IN")}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                <Sparkles className="size-3.5 text-primary" />
-                {a.reasons.map((r) => (
-                  <span
-                    key={r}
-                    className="rounded-full border border-border/70 bg-accent/50 px-2.5 py-1 text-[12.5px] text-muted-foreground"
-                  >
-                    {r}
-                  </span>
-                ))}
-                <Link
-                  to="/demo/stock/$ticker"
-                  params={{ ticker: a.ticker }}
-                  className="ml-auto flex items-center gap-1 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+            <Link
+              key={e.id}
+              to="/demo/stock/$ticker"
+              params={{ ticker: e.ticker }}
+              className="rounded-lg border border-border/70 bg-surface-raised/40 p-3 transition-colors hover:bg-accent/50"
+            >
+              <div className="flex items-center gap-2">
+                <span className="num text-[12px] font-medium">{e.ticker}</span>
+                <span
+                  className={cn(
+                    "num ml-auto text-[12.5px]",
+                    (r?.signals.priceChangePercent ?? 0) >= 0 ? "text-positive" : "text-negative",
+                  )}
                 >
-                  Detail <ArrowUpRight className="size-3" />
-                </Link>
+                  {signedPct(r?.signals.priceChangePercent ?? null)}
+                </span>
               </div>
-            </article>
+              <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground">{e.headline}</p>
+            </Link>
           );
         })}
       </div>
@@ -193,9 +152,93 @@ function AttentionScores() {
   );
 }
 
+/* ---------------- 2 + 3. Attention scores, breakdowns & explanations ---------------- */
+
+function AttentionScores({ results }: { results: AttentionResult[] }) {
+  const [open, setOpen] = useState<string | null>(results[0]?.ticker ?? null);
+
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <Gauge className="size-4 text-primary" />
+        <h2 className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+          Attention scores
+        </h2>
+        <span className="text-[12px] text-muted-foreground">
+          price 40 · volume 25 · peers 20 · volatility 15
+        </span>
+      </div>
+      <div className="space-y-3">
+        {results.map((a) => (
+          <article key={a.ticker} className="panel group p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <ScoreRing score={a.score} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="num text-[13px] font-medium">{a.ticker}</span>
+                  <span className="truncate text-[13px] text-muted-foreground">
+                    {a.companyName}
+                  </span>
+                  <span className="rounded-full border border-border/70 px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {a.classification}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[14px] leading-snug">{a.verdict}</p>
+              </div>
+              <div className="ml-auto text-right">
+                <div
+                  className={cn(
+                    "num text-[15px]",
+                    a.signals.priceChangePercent >= 0 ? "text-positive" : "text-negative",
+                  )}
+                >
+                  {signedPct(a.signals.priceChangePercent)}
+                </div>
+                <div className="num text-[12px] text-muted-foreground">
+                  ₹{a.signals.latest.price.toLocaleString("en-IN")}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+              <Sparkles className="size-3.5 text-primary" />
+              {a.explanation.map((r) => (
+                <span
+                  key={r}
+                  className="rounded-full border border-border/70 bg-accent/50 px-2.5 py-1 text-[12.5px] text-muted-foreground"
+                >
+                  {r}
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={() => setOpen(open === a.ticker ? null : a.ticker)}
+                className="ml-auto text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {open === a.ticker ? "Hide breakdown" : "Score breakdown"}
+              </button>
+              <Link
+                to="/demo/stock/$ticker"
+                params={{ ticker: a.ticker }}
+                className="flex items-center gap-1 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Detail <ArrowUpRight className="size-3" />
+              </Link>
+            </div>
+
+            {open === a.ticker ? (
+              <ScoreBreakdown result={a} className="mt-3 border-t border-border/60 pt-3" />
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ---------------- 4. Timeline replay ---------------- */
 
-function TimelineReplay() {
+function TimelineReplay({ results }: { results: AttentionResult[] }) {
   const ordered = useMemo(() => [...DEMO_ACTIVITY_DESC].reverse(), []); // oldest → newest
   const [step, setStep] = useState(ordered.length);
   const shown = ordered.slice(0, step).reverse();
@@ -233,14 +276,14 @@ function TimelineReplay() {
 
       <ol className="relative space-y-3 border-l border-border/70 pl-5">
         {shown.map((e) => (
-          <TimelineRow key={e.id} event={e} />
+          <TimelineRow key={e.id} event={e} result={findResult(results, e.ticker)} />
         ))}
       </ol>
     </section>
   );
 }
 
-function TimelineRow({ event }: { event: DemoActivity }) {
+function TimelineRow({ event, result }: { event: DemoActivity; result?: AttentionResult }) {
   return (
     <li className="relative">
       <span
@@ -267,10 +310,10 @@ function TimelineRow({ event }: { event: DemoActivity }) {
             <span
               className={cn(
                 "num text-[13px]",
-                (event.priceChangePct ?? 0) >= 0 ? "text-positive" : "text-negative",
+                (result?.signals.priceChangePercent ?? 0) >= 0 ? "text-positive" : "text-negative",
               )}
             >
-              {signedPct(event.priceChangePct)}
+              {signedPct(result?.signals.priceChangePercent ?? null)}
             </span>
             <span className="text-[12px] text-muted-foreground">
               {relativeTime(event.occurredAt)}
@@ -280,7 +323,9 @@ function TimelineRow({ event }: { event: DemoActivity }) {
         <h3 className="mt-3 text-[15px] font-medium leading-snug">{event.headline}</h3>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{event.summary}</p>
         <p className="mt-3 border-t border-border/60 pt-2 text-[12px] text-muted-foreground">
-          Attention weight {event.impact} · {event.source}
+          {result
+            ? `Attention score ${result.score} · ${result.classification} · ${event.source}`
+            : event.source}
         </p>
       </article>
     </li>
@@ -289,36 +334,36 @@ function TimelineRow({ event }: { event: DemoActivity }) {
 
 /* ---------------- snapshots ---------------- */
 
-function Snapshots() {
+function Snapshots({ results }: { results: AttentionResult[] }) {
   return (
     <div className="panel p-4">
       <h2 className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
-        Snapshot
+        Latest snapshots
       </h2>
       <ul className="mt-3 space-y-2.5">
-        {DEMO_SNAPSHOTS.map((s) => (
-          <li key={s.ticker}>
+        {results.map((r) => (
+          <li key={r.ticker}>
             <Link
               to="/demo/stock/$ticker"
-              params={{ ticker: s.ticker }}
+              params={{ ticker: r.ticker }}
               className="flex items-center gap-2 rounded-md p-1.5 transition-colors hover:bg-accent/60"
             >
               <div className="min-w-0">
-                <div className="num text-[12.5px] font-medium">{s.ticker}</div>
-                <div className="truncate text-[12px] text-muted-foreground">{s.companyName}</div>
+                <div className="num text-[12.5px] font-medium">{r.ticker}</div>
+                <div className="truncate text-[12px] text-muted-foreground">{r.companyName}</div>
               </div>
               <div className="ml-auto text-right">
                 <div
                   className={cn(
                     "num text-[13px]",
-                    s.changePct >= 0 ? "text-positive" : "text-negative",
+                    r.signals.priceChangePercent >= 0 ? "text-positive" : "text-negative",
                   )}
                 >
-                  {signedPct(s.changePct)}
+                  {signedPct(r.signals.priceChangePercent)}
                 </div>
                 <div className="num text-[11.5px] text-muted-foreground">
-                  vol {s.volumeChangePct > 0 ? "+" : ""}
-                  {s.volumeChangePct}%
+                  vol {r.signals.volumeChangePercent > 0 ? "+" : ""}
+                  {Math.round(r.signals.volumeChangePercent)}%
                 </div>
               </div>
             </Link>
