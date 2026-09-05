@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      attention_scores: {
+        Row: {
+          breakdown: Json
+          classification: string
+          created_at: string
+          explanation: Json
+          generated_at: string
+          id: string
+          score: number
+          ticker: string
+          verdict: string | null
+        }
+        Insert: {
+          breakdown?: Json
+          classification: string
+          created_at?: string
+          explanation?: Json
+          generated_at?: string
+          id?: string
+          score: number
+          ticker: string
+          verdict?: string | null
+        }
+        Update: {
+          breakdown?: Json
+          classification?: string
+          created_at?: string
+          explanation?: Json
+          generated_at?: string
+          id?: string
+          score?: number
+          ticker?: string
+          verdict?: string | null
+        }
+        Relationships: []
+      }
       market_events: {
         Row: {
           category: string
@@ -80,6 +116,42 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_seen_at?: string
+        }
+        Relationships: []
+      }
+      stock_snapshots: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          id: string
+          peer_relative_change: number
+          price: number
+          snapshot_time: string
+          ticker: string
+          volatility: number
+          volume: number
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          peer_relative_change?: number
+          price: number
+          snapshot_time?: string
+          ticker: string
+          volatility?: number
+          volume: number
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          peer_relative_change?: number
+          price?: number
+          snapshot_time?: string
+          ticker?: string
+          volatility?: number
+          volume?: number
         }
         Relationships: []
       }
