@@ -283,7 +283,7 @@ function TimelineReplay({ results }: { results: AttentionResult[] }) {
   );
 }
 
-function TimelineRow({ event, result }: { event: DemoActivity; result?: AttentionResult }) {
+function TimelineRow({ event, result }: { event: DemoActivity; result?: AttentionResult | undefined }) {
   return (
     <li className="relative">
       <span
