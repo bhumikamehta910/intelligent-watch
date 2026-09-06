@@ -1,22 +1,29 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import {
-  DEMO_ACTIVITY_DESC,
-  DEMO_WATCHLIST,
-  demoAttentionFor,
-  demoCompany,
-} from "@/lib/demo-data";
+import { DEMO_WATCHLIST, demoActivityFor } from "@/lib/demo-data";
+import { intelligenceQuery, findResult } from "@/lib/intelligence";
 import { relativeTime, signedPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ScoreRing } from "@/components/score-ring";
+import { ScoreBreakdown } from "@/components/score-breakdown";
 
 export const Route = createFileRoute("/demo/stock/$ticker")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(intelligenceQuery()),
+  errorComponent: () => (
+    <div className="panel p-10 text-center text-[13.5px] text-muted-foreground">
+      This company's intelligence data could not be loaded. Please refresh.
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="panel p-10 text-center text-[13.5px]">Company not found in the demo.</div>
+  ),
   head: ({ params }) => ({
     meta: [
       { title: `${params.ticker} — PulseIQ demo` },
       {
         name: "description",
-        content: `Attention score, explanations and event timeline for ${params.ticker} in the PulseIQ demo workspace.`,
+        content: `Calculated attention score, score breakdown and event timeline for ${params.ticker} in the PulseIQ demo workspace.`,
       },
       { property: "og:title", content: `${params.ticker} — PulseIQ demo` },
       {
@@ -32,11 +39,11 @@ export const Route = createFileRoute("/demo/stock/$ticker")({
 
 function DemoStock() {
   const { ticker } = Route.useParams();
-  const snap = demoCompany(ticker);
-  const attention = demoAttentionFor(ticker);
-  const events = DEMO_ACTIVITY_DESC.filter((e) => e.ticker === ticker);
+  const { data: results } = useSuspenseQuery(intelligenceQuery());
+  const result = findResult(results, ticker);
+  const events = demoActivityFor(ticker);
 
-  if (!snap) {
+  if (!result) {
     return (
       <div className="panel p-10 text-center">
         <h1 className="text-[15px] font-medium">{ticker} isn't in the demo workspace</h1>
@@ -46,6 +53,8 @@ function DemoStock() {
       </div>
     );
   }
+
+  const s = result.signals;
 
   return (
     <>
@@ -57,41 +66,48 @@ function DemoStock() {
       </Link>
 
       <div className="panel flex flex-wrap items-center gap-5 p-5">
-        {attention ? <ScoreRing score={attention.score} size={64} /> : null}
+        <ScoreRing score={result.score} size={64} />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{snap.companyName}</h1>
-          <p className="num mt-1 text-[13px] text-muted-foreground">{snap.ticker}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {result.companyName ?? result.ticker}
+          </h1>
+          <p className="num mt-1 text-[13px] text-muted-foreground">
+            {result.ticker} · {result.classification}
+          </p>
         </div>
         <div className="ml-auto text-right">
-          <div className="num text-2xl font-semibold">₹{snap.price.toLocaleString("en-IN")}</div>
+          <div className="num text-2xl font-semibold">₹{s.latest.price.toLocaleString("en-IN")}</div>
           <div
             className={cn(
               "num text-[14px]",
-              snap.changePct >= 0 ? "text-positive" : "text-negative",
+              s.priceChangePercent >= 0 ? "text-positive" : "text-negative",
             )}
           >
-            {signedPct(snap.changePct)}
+            {signedPct(s.priceChangePercent)}
           </div>
         </div>
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <Stat label="Volume vs normal" value={`${snap.volumeChangePct > 0 ? "+" : ""}${snap.volumeChangePct}%`} />
-        <Stat label="Against peers" value={signedPct(snap.peerRelativePct)} />
-        <Stat label="Volatility" value={snap.volatility} />
+        <Stat
+          label="Volume vs previous"
+          value={`${s.volumeChangePercent > 0 ? "+" : ""}${Math.round(s.volumeChangePercent)}%`}
+        />
+        <Stat label="Against peers" value={signedPct(s.peerRelativeChange)} />
+        <Stat label="Volatility" value={`${s.volatilityBand} (${signedPct(s.volatilityChange)})`} />
       </div>
 
-      {attention ? (
-        <div className="panel mt-3 p-5">
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className="panel p-5">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" />
             <h2 className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
               Why this score
             </h2>
           </div>
-          <p className="mt-3 text-[15px] leading-relaxed">{attention.verdict}</p>
+          <p className="mt-3 text-[15px] leading-relaxed">{result.verdict}</p>
           <ul className="mt-3 space-y-1.5">
-            {attention.reasons.map((r) => (
+            {result.explanation.map((r) => (
               <li key={r} className="flex items-center gap-2 text-[13.5px] text-muted-foreground">
                 <span className="size-1.5 rounded-full bg-primary" />
                 {r}
@@ -99,7 +115,14 @@ function DemoStock() {
             ))}
           </ul>
         </div>
-      ) : null}
+
+        <div className="panel p-5">
+          <h2 className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+            Score breakdown
+          </h2>
+          <ScoreBreakdown result={result} className="mt-3" />
+        </div>
+      </div>
 
       <h2 className="mb-3 mt-10 text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
         Activity log
@@ -112,14 +135,6 @@ function DemoStock() {
                 {e.category}
               </span>
               <span className="ml-auto flex items-center gap-3">
-                <span
-                  className={cn(
-                    "num text-[13px]",
-                    (e.priceChangePct ?? 0) >= 0 ? "text-positive" : "text-negative",
-                  )}
-                >
-                  {signedPct(e.priceChangePct)}
-                </span>
                 <span className="text-[12px] text-muted-foreground">
                   {relativeTime(e.occurredAt)}
                 </span>
@@ -127,6 +142,9 @@ function DemoStock() {
             </div>
             <h3 className="mt-3 text-[15px] font-medium leading-snug">{e.headline}</h3>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">{e.summary}</p>
+            <p className="mt-3 border-t border-border/60 pt-2 text-[12px] text-muted-foreground">
+              {e.source}
+            </p>
           </article>
         ))}
         {events.length === 0 ? (
