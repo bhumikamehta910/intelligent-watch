@@ -7,6 +7,7 @@ import { relativeTime, signedPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ScoreRing } from "@/components/score-ring";
 import { ScoreBreakdown } from "@/components/score-breakdown";
+import { DataModeBadge } from "@/components/data-mode-badge";
 
 export const Route = createFileRoute("/demo/stock/$ticker")({
   loader: ({ context }) => context.queryClient.ensureQueryData(intelligenceQuery()),
@@ -39,8 +40,8 @@ export const Route = createFileRoute("/demo/stock/$ticker")({
 
 function DemoStock() {
   const { ticker } = Route.useParams();
-  const { data: results } = useSuspenseQuery(intelligenceQuery());
-  const result = findResult(results, ticker);
+  const { data } = useSuspenseQuery(intelligenceQuery());
+  const result = findResult(data.results, ticker);
   const events = demoActivityFor(ticker);
 
   if (!result) {
@@ -71,8 +72,9 @@ function DemoStock() {
           <h1 className="text-2xl font-semibold tracking-tight">
             {result.companyName ?? result.ticker}
           </h1>
-          <p className="num mt-1 text-[13px] text-muted-foreground">
+          <p className="num mt-1 flex items-center gap-2 text-[13px] text-muted-foreground">
             {result.ticker} · {result.classification}
+            <DataModeBadge mode={data.mode} reason={data.reason} />
           </p>
         </div>
         <div className="ml-auto text-right">

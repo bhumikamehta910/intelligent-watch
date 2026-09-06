@@ -4,6 +4,8 @@ import type { AttentionResult } from "@/lib/engines/attention-engine";
 
 export type { AttentionResult };
 
+export type IntelligenceResponse = Awaited<ReturnType<typeof getIntelligence>>;
+
 export const intelligenceQuery = () =>
   queryOptions({
     queryKey: ["intelligence"],

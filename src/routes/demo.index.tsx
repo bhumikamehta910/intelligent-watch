@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { ScoreRing } from "@/components/score-ring";
 import { ScoreBreakdown } from "@/components/score-breakdown";
+import { DataModeBadge } from "@/components/data-mode-badge";
 
 export const Route = createFileRoute("/demo/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(intelligenceQuery()),
@@ -46,12 +47,16 @@ export const Route = createFileRoute("/demo/")({
 });
 
 function DemoDashboard() {
-  const { data: results } = useSuspenseQuery(intelligenceQuery());
+  const { data } = useSuspenseQuery(intelligenceQuery());
+  const results = data.results;
 
   return (
     <>
       <div className="mb-7">
-        <h1 className="text-2xl font-semibold tracking-tight">{DEMO_WATCHLIST.name}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">{DEMO_WATCHLIST.name}</h1>
+          <DataModeBadge mode={data.mode} reason={data.reason} />
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Last visit {relativeTime(DEMO_WATCHLIST.lastSeenAt)} · {results.length} companies · scores
           calculated live from stored snapshots
