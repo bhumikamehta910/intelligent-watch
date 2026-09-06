@@ -2,12 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Gauge, History, Sparkles } from "lucide-react";
-import {
-  DEMO_ACTIVITY_DESC,
-  DEMO_SINCE_AWAY,
-  DEMO_WATCHLIST,
-  type DemoActivity,
-} from "@/lib/demo-data";
+import { DEMO_ACTIVITY_DESC, DEMO_WATCHLIST, type DemoActivity } from "@/lib/demo-data";
+import type { MeaningfulEvent } from "@/lib/engines/change-engine";
 import { intelligenceQuery, findResult, type AttentionResult } from "@/lib/intelligence";
 import { relativeTime, signedPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -63,7 +59,7 @@ function DemoDashboard() {
         </p>
       </div>
 
-      <SinceYouWereAway results={results} />
+      <SinceYouWereAway results={results} events={data.events} />
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div>
@@ -95,12 +91,14 @@ function DemoDashboard() {
 
 /* ---------------- 1. Since you were away ---------------- */
 
-function SinceYouWereAway({ results }: { results: AttentionResult[] }) {
-  const moved = DEMO_SINCE_AWAY.length;
+function SinceYouWereAway({
+  results,
+  events,
+}: {
+  results: AttentionResult[];
+  events: MeaningfulEvent[];
+}) {
   const top = results[0];
-  const weakest = [...results].sort(
-    (a, b) => a.signals.priceChangePercent - b.signals.priceChangePercent,
-  )[0];
 
   return (
     <section className="panel p-5">
@@ -110,49 +108,70 @@ function SinceYouWereAway({ results }: { results: AttentionResult[] }) {
           Since you were away
         </h2>
         <span className="num rounded-full bg-accent px-1.5 text-[11px] text-muted-foreground">
-          {moved}
+          {events.length}
+        </span>
+        <span className="ml-auto text-[12px] text-muted-foreground">
+          Only changes past the noise floor: price &gt;1% · volume &gt;20% · score ±15
         </span>
       </div>
-      <p className="mt-3 text-[15px] leading-relaxed">
-        In the {relativeTime(DEMO_WATCHLIST.lastSeenAt).replace(" ago", "")} you were away,{" "}
-        <strong className="font-medium">{moved} things happened</strong> on this watchlist.
-        {top ? (
-          <>
-            {" "}
-            <strong className="font-medium text-positive">{top.ticker}</strong> is the one that
-            matters — attention score {top.score} ({top.classification}). {top.explanation[0]}
-          </>
-        ) : null}
-        {weakest && weakest.ticker !== top?.ticker ? (
-          <> {weakest.ticker} is the one to watch on the downside.</>
-        ) : null}
-      </p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {DEMO_SINCE_AWAY.slice(0, 3).map((e) => {
-          const r = findResult(results, e.ticker);
-          return (
-            <Link
-              key={e.id}
-              to="/demo/stock/$ticker"
-              params={{ ticker: e.ticker }}
-              className="rounded-lg border border-border/70 bg-surface-raised/40 p-3 transition-colors hover:bg-accent/50"
-            >
-              <div className="flex items-center gap-2">
-                <span className="num text-[12px] font-medium">{e.ticker}</span>
-                <span
-                  className={cn(
-                    "num ml-auto text-[12.5px]",
-                    (r?.signals.priceChangePercent ?? 0) >= 0 ? "text-positive" : "text-negative",
-                  )}
+
+      {events.length === 0 ? (
+        <p className="mt-3 text-[15px] leading-relaxed">
+          Nothing on this watchlist crossed the noise floor since your last visit. Everything moved
+          within its normal range — no action needed.
+        </p>
+      ) : (
+        <>
+          <p className="mt-3 text-[15px] leading-relaxed">
+            <strong className="font-medium">{events.length} meaningful change
+            {events.length === 1 ? "" : "s"}</strong> — everything else was normal market noise and
+            has been filtered out.
+            {top ? (
+              <>
+                {" "}
+                <strong className="font-medium text-positive">{top.ticker}</strong> deserves your
+                attention first — score {top.score} ({top.classification}).
+              </>
+            ) : null}
+          </p>
+
+          <div className="mt-4 space-y-2">
+            {events.slice(0, 5).map((e) => {
+              const r = findResult(results, e.ticker);
+              return (
+                <Link
+                  key={e.id}
+                  to="/demo/stock/$ticker"
+                  params={{ ticker: e.ticker }}
+                  className="block rounded-lg border border-border/70 bg-surface-raised/40 p-3 transition-colors hover:bg-accent/50"
                 >
-                  {signedPct(r?.signals.priceChangePercent ?? null)}
-                </span>
-              </div>
-              <p className="mt-1.5 text-[13px] leading-snug text-muted-foreground">{e.headline}</p>
-            </Link>
-          );
-        })}
-      </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-primary">
+                      {e.category}
+                    </span>
+                    <span className="num text-[12.5px] font-medium">{e.ticker}</span>
+                    <span className="text-[12.5px] text-muted-foreground">{e.companyName}</span>
+                    <span
+                      className={cn(
+                        "num ml-auto text-[12.5px]",
+                        (r?.signals.priceChangePercent ?? 0) >= 0
+                          ? "text-positive"
+                          : "text-negative",
+                      )}
+                    >
+                      {signedPct(r?.signals.priceChangePercent ?? null)}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[14px] font-medium leading-snug">{e.headline}</p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                    {e.reason}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
     </section>
   );
 }

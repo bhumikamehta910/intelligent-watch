@@ -15,6 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { buildDeltas, toSnapshot, round2 } from "@/lib/engines/snapshot-engine";
 import { scoreAll, type AttentionResult } from "@/lib/engines/attention-engine";
+import { detectAll, type MeaningfulEvent } from "@/lib/engines/change-engine";
 import {
   FinnhubProvider,
   type CompanyInfo,
@@ -32,6 +33,8 @@ export type IntelligencePayload = {
   marketStatus: MarketStatus | null;
   generatedAt: string;
   results: AttentionResult[];
+  /** Only changes that crossed the noise floor — see ChangeEngine. */
+  events: MeaningfulEvent[];
 };
 
 /** The demo watchlist, mapped onto tradeable provider symbols. */
@@ -196,6 +199,13 @@ export class StockDataService {
     if (error) throw error;
 
     const results = scoreAll(buildDeltas((data ?? []).map(toSnapshot)));
+
+    // Previously stored scores let the ChangeEngine spot attention up/downgrades.
+    const { data: priorRows } = await supabase.from("attention_scores").select("ticker, score");
+    const previousScores: Record<string, number> = {};
+    for (const row of priorRows ?? []) previousScores[row.ticker] = Number(row.score);
+
+    const events = detectAll(results, previousScores);
     await this.persistScores(results);
 
     return {
@@ -204,6 +214,7 @@ export class StockDataService {
       marketStatus: null,
       generatedAt: new Date().toISOString(),
       results,
+      events,
     };
   }
 
